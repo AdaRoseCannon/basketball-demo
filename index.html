@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Basketball Game</title>
+		<style>
+			body {
+				font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+			}
+
+			#overlay {
+				position: absolute;
+				top: 0;
+				left: 0;
+				right: 0;
+				bottom: 0;
+				padding: 1em;
+				
+				display: flex;
+				flex-direction: column;
+				justify-items: flex-start;
+				align-items: flex-start;
+
+				pointer-events: none;
+				user-select: none;
+			}
+
+			button {
+				appearance: none;
+				background: rgba(153, 135, 135, 0.267);
+				color: white;
+				border: 4px solid;
+				padding: 0.5em;
+				font-size: 1.5em;
+				border-radius: 2em;
+				user-select: none;
+				pointer-events: auto;
+				align-self: center;
+			}
+
+			h1 {
+				font-size: 1.5em;
+				background: rgba(153, 135, 135, 0.267);
+				color: white;
+			}
+
+			.overlay-content {
+				flex-grow: 1;
+			}
+
+			p {
+				font-size: 1.5em;
+				background: rgba(153, 135, 135, 0.267);
+				color: white;
+			}
+
+			#ar-instructions, #inline-instructions {
+				display: none;
+			}
+
+			body.inline #inline-instructions {
+				display: contents;
+			}
+
+			body.playing #ar-instructions,
+			body.ar-preparing #ar-instructions {
+				display: contents;
+			}
+
+			body.playing #go-button, 
+			body.playing #instructions {
+				visibility: hidden;
+			}
+
+		</style>
+		<script src="https://aframe.io/releases/1.1.0/aframe.min.js"></script>
+		<script src="ar-components.js"></script>
+		<script src="https://cdn.jsdelivr.net/gh/n5ro/aframe-physics-system@v4.0.1/dist/aframe-physics-system.min.js"></script>
+	</head>
+	<body class="inline">
+		<a-scene webxr="optionalFeatures: hit-test, dom-overlay; overlayElement:#overlay;" physics="debug: false">
+			<a-sphere id="ball" dynamic-body radius="0.1" color="orange" position="0.1 2.36 -1.5"></a-sphere>
+			<a-entity id="hoop" rotation="90 0 0" position="0 2 -1.8" hide-in-ar-mode> 
+				<a-torus scale="0.6 0.6 0.6" position="0 0.173 -0.1" color="#43A367" radius="0.25" radius-tubular="0.005"></a-torus>
+				<a-torus scale="0.6 0.6 0.6" static-body="shape: mesh;" position="0 0.173 -0.1" visible="false" radius="0.27" radius-tubular="0.02" material="" geometry="radius: 0.29; segmentsRadial: 5; segmentsTubular: 12"></a-torus>
+				<a-plane
+					scale="0.6 0.6 0.6"
+					position="0 0 -0.3"
+					rotation="-90 0 0"
+					width="0.9"
+					height="0.9"
+					material="transparent: true; side: double;"
+					src="./backboard.png"
+					static-body
+				></a-plane>
+				<a-plane scale="0.6 0.6 0.6" position="0 0 1.12355" rotation="-90 0 0" width="2" height="3" static-body geometry="height: 4.37" visible="false"></a-plane>
+				<a-cone scale="0.6 0.6 0.6" position="0 0.173 -0.010" color="tomato" radius-bottom="0.25" radius-top="0.3" material="side: double; opacity:0.5; transparent: true;" geometry="height: 0.29; openEnded: true" rotation="90 0 0"></a-cone>
+			</a-entity>
+			<a-entity ar-hit-test="doHitTest:false" visible="false">
+				<a-plane
+					rotation="-90 0 0"
+					width="0.2"
+					height="0.2"
+					src="./arrow.png"
+					material="transparent:true;"
+				></a-plane>
+			</a-entity>
+			<a-sky color="skyblue" hide-in-ar-mode></a-sky>
+			<a-plane
+				rotation="-90 0 0"
+				width="20"
+				height="20"
+				color="#43A367"
+				static-body
+				hide-in-ar-mode
+			></a-plane>
+		</a-scene>
+		<div id="overlay" class="container">
+			<div id="ar-instructions">
+				<h1>Welcome To Basketball</h1>
+				<section class="overlay-content">
+					<p id="instructions">Place the basket along a wall</p>
+				</section>
+				<div style="display: flex; justify-content: space-between; align-self: stretch;">
+					<button id="go-button">Ready to Play!</button>
+					<button id="exit-button">Stop AR</button>
+				</div>
+			</div>
+			<div id="inline-instructions">
+				<h1>Welcome To Basketball</h1>
+				<section class="overlay-content">
+					<p>Enter AR to Start Playing</p>
+				</section>
+			</div>
+		</div>
+		<script>
+			const reticle = document.querySelector("[ar-hit-test]");
+			const hoop = document.getElementById('hoop');
+			const instructions = document.getElementById('instructions');
+			const ball = document.getElementById('ball');
+			const button = document.getElementById('go-button');
+			const exit = document.getElementById('exit-button');
+			const upVector = new THREE.Vector3(0, 1, 0);
+			const tempVector = new THREE.Vector3();
+			const tempQuaternion = new THREE.Quaternion();
+			const scene = document.querySelector('a-scene');
+
+			function positionHoop() {
+				hoop.setAttribute("position", reticle.getAttribute("position"));
+				hoop.setAttribute("visible", true);
+				tempVector.set(0, 0 ,-1);
+				tempVector.applyQuaternion(reticle.object3D.quaternion);
+				tempQuaternion.setFromUnitVectors(tempVector, upVector);
+				hoop.object3D.quaternion.multiplyQuaternions(tempQuaternion, reticle.object3D.quaternion);
+			};
+
+			exit.addEventListener('click', function () {
+				scene.xrSession.end();
+			});
+
+			scene.addEventListener("enter-vr", () => {
+				document.body.classList.remove("inline");
+				if (scene.is("ar-mode")) {
+					document.body.classList.add("ar-preparing");
+					reticle.setAttribute('ar-hit-test', 'doHitTest:true');
+					reticle.setAttribute('visible', 'true');
+				} else {
+					document.body.classList.add("playing");
+					reticle.setAttribute('ar-hit-test', 'doHitTest:false');
+					reticle.setAttribute('visible', 'false');
+				}
+			});
+
+			scene.addEventListener("exit-vr", () => {
+				document.body.classList.add("inline");
+				document.body.classList.remove("playing");
+				document.body.classList.remove("ar-preparing");
+				reticle.setAttribute('ar-hit-test', 'doHitTest:false');
+				reticle.setAttribute('visible', 'false');
+			});
+
+			reticle.addEventListener('select', function (e) {
+				if (document.body.classList.contains("playing")) {
+					const pose = e.detail.pose;
+					ball.body.position.copy(pose.transform.position);
+					// ball.body.position.y += 0.2;
+					tempVector.set(0, 0 ,-5);
+					tempVector.applyQuaternion(pose.transform.orientation);
+					ball.body.velocity.copy(tempVector);
+					return;
+				}
+				setTimeout(() => {
+					if (document.body.classList.contains("playing")) {
+						return;
+					} else {
+						positionHoop();
+					}
+				}, 50);
+			});
+
+			function readyToStartPlay(e) {
+				e.preventDefault();
+				if (hoop.getAttribute("visible") === false) {
+					positionHoop();
+				}
+				if (document.body.classList.contains("ar-preparing")) {
+					document.body.classList.remove("ar-preparing");
+					document.body.classList.add("playing");
+					reticle.setAttribute('ar-hit-test', 'doHitTest:false');
+					reticle.setAttribute('visible', 'false');
+					return;
+				}
+			}
+
+			button.addEventListener('mousedown', readyToStartPlay);
+			button.addEventListener('touchstart', readyToStartPlay);
+		</script>
+	</body>
+</html>
