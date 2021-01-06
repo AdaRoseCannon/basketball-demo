@@ -100,14 +100,17 @@ AFRAME.registerComponent("ar-hit-test", {
 
 	init: function () {
 		this.hitTest = null;
+		this.hasFoundAPose = false;
 
 		this.el.sceneEl.renderer.xr.addEventListener("sessionend", () => {
 			this.hitTest = null;
+			this.hasFoundAPose = false;
 		});
 
 		this.el.sceneEl.renderer.xr.addEventListener("sessionstart", async () => {
 			const renderer = this.el.sceneEl.renderer;
 			const session = this.session = renderer.xr.getSession();
+			this.hasFoundAPose = false;
 
 			// Default to selecting through the face
 			const viewerSpace = await session.requestReferenceSpace('viewer');

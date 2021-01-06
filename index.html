@@ -113,6 +113,15 @@
 				static-body
 				hide-in-ar-mode
 			></a-plane>
+			<a-camera>
+				<a-entity
+					id="text"
+					text="value: Hello World; align: left; width: 0.1;"
+					position="0 0 -0.17;"
+					visible="false"
+				>
+				</a-entity>
+			</a-camera>
 		</a-scene>
 		<div id="overlay" class="container">
 			<div id="ar-instructions">
@@ -144,6 +153,20 @@
 			const tempQuaternion = new THREE.Quaternion();
 			const scene = document.querySelector('a-scene');
 
+			function hasDomOverlay(session) {
+				if (!session.domOverlayState) {
+					// DOM Overlay is not supported
+					return false;
+				}
+
+				if (!session.domOverlayState.type) {
+					// DOM Overlay is not in use
+					return false;
+				}
+
+				return true;
+			}
+
 			function positionHoop() {
 				hoop.setAttribute("position", reticle.getAttribute("position"));
 				hoop.setAttribute("visible", true);
@@ -158,6 +181,8 @@
 			});
 
 			scene.addEventListener("enter-vr", () => {
+				const domOverlay = hasDomOverlay(scene.xrSession);
+				document.getElementById('text').setAttribute('text', 'value', 'Overlay: ' + domOverlay);
 				document.body.classList.remove("inline");
 				if (scene.is("ar-mode")) {
 					document.body.classList.add("ar-preparing");
@@ -179,6 +204,7 @@
 			});
 
 			reticle.addEventListener('select', function (e) {
+				const domOverlay = hasDomOverlay(scene.xrSession);
 				if (document.body.classList.contains("playing")) {
 					const pose = e.detail.pose;
 					ball.body.position.copy(pose.transform.position);
@@ -188,13 +214,25 @@
 					ball.body.velocity.copy(tempVector);
 					return;
 				}
-				setTimeout(() => {
+
+				if (domOverlay) {
+					setTimeout(() => {
+						if (document.body.classList.contains("playing")) {
+							return;
+						} else {
+							positionHoop();
+						}
+					}, 50);
+				} else {
 					if (document.body.classList.contains("playing")) {
 						return;
 					} else {
-						positionHoop();
+						if (this.components["ar-hit-test"].hasFoundAPose) {
+							positionHoop();
+							readyToStartPlay(e);
+						}
 					}
-				}, 50);
+				}
 			});
 
 			function readyToStartPlay(e) {
