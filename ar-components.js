@@ -209,13 +209,9 @@ AFRAME.registerComponent("ar-hit-test", {
 });
 
 AFRAME.registerPrimitive('a-hit-test', {
-    // Preset default components. These components and component properties will be attached to the entity out-of-the-box.
     defaultComponents: {
         'ar-hit-test': {}
     },
-
-    // Defined mappings from HTML attributes to component properties (using dots as delimiters).
-    // If we set `depth="5"` in HTML, then the primitive will automatically set `geometry="depth: 5"`.
     mappings: {
         target: 'ar-hit-test.target',
     }
